@@ -1,2 +1,5 @@
 runs/
 .pre_trained_weights/
+.idea/
+.vscode/
+.directory
