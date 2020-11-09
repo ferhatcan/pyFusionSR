@@ -173,11 +173,11 @@ class BaseDataset(IDataLoader):
         return lr_image, hr_image
 
     @staticmethod
-    def randomGenerator(self):
+    def randomGenerator():
         return random.random(), random.random()
 
     @staticmethod
-    def check_nan(self, inp):
+    def check_nan(inp):
         if torch.is_tensor(inp):
             dummy = torch.ones(*inp.shape[1:])
             for i in range(inp.shape[0]):
