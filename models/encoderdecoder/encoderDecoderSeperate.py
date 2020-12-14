@@ -11,11 +11,19 @@ class EncoderDecoderFusion(IModel):
     def __init__(self, args):
         super(EncoderDecoderFusion, self).__init__()
 
-        self.ir_model = EncoderDecoderPyramidv2(args, args.ir_channel_number)
-        self.eo_model = EncoderDecoderPyramidv2(args, args.eo_channel_number)
+        self.model_ir = EncoderDecoderPyramidv2(args, args.ir_channel_number)
+        self.model_eo = EncoderDecoderPyramidv2(args, args.eo_channel_number)
 
-        self.ir_model.load_state_dict(torch.load(args.ir_pretrained_weights))
-        self.eo_model.load_state_dict(torch.load(args.eo_pretrained_weights))
+        try:
+            self.ir_model.load_state_dict(torch.load(args.ir_pretrained_weights))
+        except:
+            print("Given pretrained weights for ir-model does not exist or not suitable for this task!")
+        try:
+            self.eo_model.load_state_dict(torch.load(args.eo_pretrained_weights))
+        except:
+            print("Given pretrained weights for eo-model does not exist or not suitable for this task!")
+
+        self.out_layer = self.model_ir.decoder if args.output == "ir" else self.model_eo.decoder
 
         # for param in self.ir_model.encoder.parameters():
         #     param.requires_grad = False
@@ -24,14 +32,14 @@ class EncoderDecoderFusion(IModel):
 
     def forward(self, inputs: list):
         assert len(inputs) == 2, 'There should be 2 inputs'
-        feats_ir = self.ir_model.encoder(inputs[0])
-        feats_rgb = self.eo_model.encoder(inputs[1])
+        feats_ir = self.model_ir.encoder(inputs[0])
+        feats_rgb = self.model_eo.encoder(inputs[1])
 
         # concatanete feats --> generate feats
         for key, _ in feats_ir.items():
             feats_ir[key] = (feats_ir[key] + feats_rgb[key]) / 2
 
-        out = self.eo_model.decoder(feats_ir)
+        out = self.out_layer(feats_ir)
 
         return out
 
@@ -81,8 +89,14 @@ class EncoderFusionDecoderv2(IModel):
 
         self.fusion_layers = nn.ModuleList(self.fusion_layers)
 
-        self.model_ir.load_state_dict(torch.load(args.ir_pretrained_weights))
-        self.model_eo.load_state_dict(torch.load(args.eo_pretrained_weights))
+        try:
+            self.model_ir.load_state_dict(torch.load(args.ir_pretrained_weights))
+        except:
+            print("Given pretrained weights for ir-model does not exist or not suitable for this task!")
+        try:
+            self.model_eo.load_state_dict(torch.load(args.eo_pretrained_weights))
+        except:
+            print("Given pretrained weights for eo-model does not exist or not suitable for this task!")
 
         self.out_layer = self.model_ir.decoder if args.output == "ir" else self.model_eo.decoder
 
