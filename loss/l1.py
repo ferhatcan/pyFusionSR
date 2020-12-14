@@ -15,4 +15,7 @@ class L1LossLocal(ILoss):
         for i in range(len(data["gts"])):
             if data["gts"][i].shape == data["result"][0].shape:
                 result.append(self.loss_function(data["gts"][i], data["result"][0]))
+            else:
+                result.append(self.loss_function(self.convert2singleChannel(data["gts"][i]),
+                                                 self.convert2singleChannel(data["result"][0])))
         return result
