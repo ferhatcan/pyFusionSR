@@ -1,6 +1,9 @@
-from loss.fusionQualityLoss import FusionQualityEdgeLoss
+from loss.fusionQualityLoss import FusionQualityEdgeLoss, FusionQualityLoss
 from loss.mse import MSELossLocal
 from loss.l1 import L1LossLocal
+
+def getQLoss(args):
+    return FusionQualityLoss(args)
 
 def getQELoss(args):
     return FusionQualityEdgeLoss(args)
