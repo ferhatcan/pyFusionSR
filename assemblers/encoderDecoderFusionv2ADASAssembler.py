@@ -9,8 +9,8 @@ from methods.methodGetters import *
 from experiments.experimentGetters import *
 from optimizers.optimizerSchedulerGetters import *
 
-def getExperiment():
-    CONFIG_FILE_NAME = "./configs/encoderDecoderFusionv2ADAS.ini"
+def getExperiment(config_file):
+    CONFIG_FILE_NAME = config_file
 
     args = options(CONFIG_FILE_NAME)
     print("The system will use following resource: {:}".format(args.argsCommon.device))
