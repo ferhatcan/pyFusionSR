@@ -6,19 +6,41 @@ import kornia as kn
 
 from loss.ILoss import ILoss
 
-class FusionQualityEdgeLoss(ILoss):
+class FusionQualityLoss(ILoss):
     def __init__(self, args):
-        super(FusionQualityEdgeLoss, self).__init__()
-        self.qLoss = FusionQualityLoss(args)
+        super(FusionQualityLoss, self).__init__()
+        self.qLoss = FusionQualityMetric(args)
 
     def forward(self, data: dict) -> list:
         data["result"][0] = kn.normalize_min_max(data["result"][0])
         normalLoss = self.qLoss(data)
+
+        # inplace 1 - overallQscore_abf
+        for i in range(len(normalLoss)):
+            normalLoss[i] = torch.add(normalLoss[i], -1)
+            normalLoss[i] = torch.mul(normalLoss[i], -1)
+
+        return normalLoss
+
+
+class FusionQualityEdgeLoss(ILoss):
+    def __init__(self, args):
+        super(FusionQualityEdgeLoss, self).__init__()
+        self.qLoss = FusionQualityMetric(args)
+
+    def forward(self, data: dict) -> list:
+        data["result"][0] = kn.normalize_min_max(data["result"][0])
         edgeData = {"result": [], "gts": []}
         for inp in data["result"]:
             edgeData["result"].append(kn.normalize_min_max(kn.sobel(inp)))
+            mean = edgeData["result"][-1].mean()
+            std = edgeData["result"][-1].std()
+            edgeData["result"][-1][edgeData["result"][-1] <= mean + 1.2 * std] = 0
         for inp in data["gts"]:
             edgeData["gts"].append(kn.normalize_min_max(kn.sobel(inp)))
+            mean = edgeData["gts"][-1].mean()
+            std = edgeData["gts"][-1].std()
+            edgeData["gts"][-1][edgeData["gts"][-1] <= mean + 1.2 * std] = 0
 
         edgeLoss = self.qLoss(edgeData)
 
@@ -34,25 +56,16 @@ class FusionQualityEdgeLoss(ILoss):
         # debugging
 
         # inplace 1 - overallQscore_abf
-        for i in range(len(normalLoss)):
-            normalLoss[i] = torch.add(normalLoss[i], -1)
-            normalLoss[i] = torch.mul(normalLoss[i], -1)
+        for i in range(len(edgeLoss)):
             edgeLoss[i] = torch.add(edgeLoss[i], -1)
             edgeLoss[i] = torch.mul(edgeLoss[i], -1)
 
-        result = [normalLoss[i] + 10 * edgeLoss[i] for i in range(len(normalLoss))]
-
-        # # inplace 1 - overallQscore_abf
-        # for i in range(len(result)):
-        #     result[i] = torch.add(result[i], -1)
-        #     result[i] = torch.mul(result[i], -1)
-
-        return result
+        return edgeLoss
 
 
-class FusionQualityLoss(ILoss):
+class FusionQualityMetric(ILoss):
     def __init__(self, args):
-        super(FusionQualityLoss, self).__init__()
+        super(FusionQualityMetric, self).__init__()
         self.loss_type = 'Fusion'
 
         self.WINDOW_SIZE = 8
