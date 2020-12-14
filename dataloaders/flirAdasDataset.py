@@ -79,7 +79,13 @@ class FlirAdasDataset(IDataLoader):
 
     def transform_multi(self, image_ir, image_visible):
         image_ir = image_ir.convert('L')
-        image_visible = image_visible.convert('RGB')
+        if self.channel_number == 3:
+            image_visible = image_visible.convert('RGB')
+        else:
+            ycbcr = image_visible.convert('YCbCr')
+            B = np.ndarray((image_visible.size[1], image_visible.size[0], 3), 'u1', ycbcr.tobytes())
+            image_visible = Image.fromarray(B[:, :, 0], 'L')
+            # image_visible = image_visible.convert('L')
         # make image dimensions same to make crop right segments as possible
         resize = transforms.Resize(size=[image_ir.height, image_ir.width], interpolation=self.downgrade)
         image_visible = resize(image_visible)
@@ -173,7 +179,7 @@ class FlirAdasDataset(IDataLoader):
 #Testing purposes
 # from utils.checkpoint import checkpoint
 # from options import options
-# CONFIG_FILE_NAME = "../configs/encoderDecoderFusionv2ADAS.ini"
+# CONFIG_FILE_NAME = "../configs/encoderDecoderFusionv2ADAS_singleChannels.ini"
 # args = options(CONFIG_FILE_NAME)
 # adas = FlirAdasDataset(args.argsDataset)
 # print(len(adas))
