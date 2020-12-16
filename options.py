@@ -73,7 +73,7 @@ class ParseModel(ParseCommons):
         try:
             getattr(self, 'parse'+self.model)(config)
         except:
-            self.parseDefault(config)
+            self.parseDefault()
 
     def parseDefault(self):
         self.n_resblocks = 32
