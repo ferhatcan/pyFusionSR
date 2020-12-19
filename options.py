@@ -61,7 +61,11 @@ class ParseDataset(ParseCommons):
         self.downgrade          = config["DATASET"]["downgrade"]
         self.validation_size    = float(config["DATASET"]["validation_size"])
         self.shuffle_dataset    = config["DATASET"].getboolean("shuffle_dataset")
-
+        self.channel_type       = 'RGB'
+        if "channel_type" in config["DATASET"]:
+            self.channel_type = config["DATASET"]["channel_type"]
+        elif self.channel_number == 1:
+            self.channel_type = 'YCbCr'
 
 class ParseModel(ParseCommons):
     def __init__(self, config: ConfigParser):
