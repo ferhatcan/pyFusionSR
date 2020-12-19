@@ -6,7 +6,7 @@ Created by Ferhat Can ATAMAN
 ## Tests
 --- 
 
-- [ ] Accuracy benchmarks -- save result images for 21 images. Do bench in MATLAB
+- [x] Accuracy benchmarks -- save result images for 21 images. Do bench in MATLAB
   - [bench-paper](https://arxiv.org/pdf/2002.03322.pdf) 
   - [metrics](https://github.com/zhengliu6699/imageFusionMetrics)
   - [input-result](https://github.com/xingchenzhang/VIFB) 
@@ -18,12 +18,12 @@ Created by Ferhat Can ATAMAN
     - CC
     - N
     
-- [ ] Training with flirADAS
+- [x] Training with flirADAS
     - RGB + IR
     - (Y + IR) + CbCr
     - HSV color space + IR ???
     
-- [ ] Dataset results 
+- [x] Dataset results 
     - TNO dataset images or 21 images and their results
     
 - [ ] Fusion Layer effect
