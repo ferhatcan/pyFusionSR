@@ -6,6 +6,8 @@ from torchvision.transforms import functional as tvF
 import random
 import PIL.Image as Image
 from PIL import ImageFilter
+import cv2
+import imutils
 
 from dataloaders.IDataLoader import IDataLoader
 
@@ -26,6 +28,10 @@ class FlirAdasDataset(IDataLoader):
         self.channel_number = args.channel_number
         self.hr_shape = args.hr_shape
         self.downgrade = args.downgrade
+        self.channel_type = args.channel_type
+
+        possible_channel_types = ["RGB", "YCbCr", "HSV", "L"]
+        assert self.channel_type in possible_channel_types, "Given channel type must be included in {}".format(possible_channel_types)
 
         if self.downgrade == "bicubic":
             self.downgrade = Image.BILINEAR
@@ -46,6 +52,8 @@ class FlirAdasDataset(IDataLoader):
         self.extract_image_files()
         assert (len(self.imageFiles["thermal"]) > 0), "There should be an valid dataset path"
 
+        self.homography = np.load("./dataloaders/homography_flirADAS.npy")
+
     def extract_image_files(self):
         for image_path in self.image_paths:
             searchPath = os.path.join(image_path, self.visPath)
@@ -64,9 +72,29 @@ class FlirAdasDataset(IDataLoader):
 
     def __getitem__(self, item: int) -> dict:
         visIm = Image.open(self.imageFiles["visible"][item])
-        irIm = Image.open(self.imageFiles["thermal"][item])
+        irIm = Image.open(self.imageFiles["thermal"][item]).convert('RGB')
 
-        ir_lr, ir_hr, vis_lr, vis_hr = self.transform_multi(irIm, visIm)
+        visIm = np.array(visIm)
+        irIm = np.array(irIm)
+
+        irIm = cv2.resize(irIm, (visIm.shape[1], visIm.shape[0]))
+
+        height, width = irIm.shape[0], irIm.shape[1]
+
+        if height * width < 1e6:
+            offset = 50
+        else:
+            offset = 200
+
+        registered_ir = cv2.warpPerspective(irIm, self.homography, (width, height))
+
+        # DEBUGGING
+        # dst = cv2.addWeighted(registered_ir, 0.7, visIm, 0.3, 0.0)
+        # cv2.imshow("Blended", imutils.resize(dst, width=1000))
+        # cv2.waitKey()
+
+        ir_lr, ir_hr, vis_lr, vis_hr = self.transform_multi(Image.fromarray(registered_ir[offset:height-offset, offset:width-offset]),
+                                                            Image.fromarray(visIm[offset:height-offset, offset:width-offset]))
 
         return self.fillOutputDataDict([ir_lr, vis_lr], [ir_hr, vis_hr])
 
@@ -82,17 +110,23 @@ class FlirAdasDataset(IDataLoader):
         if self.channel_number == 3:
             image_visible = image_visible.convert('RGB')
         else:
-            ycbcr = image_visible.convert('YCbCr')
-            B = np.ndarray((image_visible.size[1], image_visible.size[0], 3), 'u1', ycbcr.tobytes())
-            image_visible = Image.fromarray(B[:, :, 0], 'L')
-            # image_visible = image_visible.convert('L')
+            if self.channel_type == "YCbCr":
+                ycbcr = image_visible.convert('YCbCr')
+                B = np.ndarray((image_visible.size[1], image_visible.size[0], 3), 'u1', ycbcr.tobytes())
+                image_visible = Image.fromarray(B[:, :, 0], 'L')
+            elif self.channel_type == "HSV":
+                hsv = image_visible.convert('HSV')
+                B = np.ndarray((image_visible.size[1], image_visible.size[0], 3), 'u1', hsv.tobytes())
+                image_visible = Image.fromarray(B[:, :, -1], 'L')
+            else:
+                image_visible = image_visible.convert('L')
         # make image dimensions same to make crop right segments as possible
-        resize = transforms.Resize(size=[image_ir.height, image_ir.width], interpolation=self.downgrade)
-        image_visible = resize(image_visible)
+        # resize = transforms.Resize(size=[image_ir.height, image_ir.width], interpolation=self.downgrade)
+        # image_visible = resize(image_visible)
         # Resize input image if its dimensions smaller than desired dimensions
         resize = transforms.Resize(size=self.hr_shape, interpolation=self.downgrade)
         if not (image_ir.width > self.hr_shape[0] and image_ir.height > self.hr_shape[1]):
-            image_lwir = resize(image_ir)
+            image_ir = resize(image_ir)
         if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
             image_visible = resize(image_visible)
 
@@ -179,12 +213,15 @@ class FlirAdasDataset(IDataLoader):
 #Testing purposes
 # from utils.checkpoint import checkpoint
 # from options import options
-# CONFIG_FILE_NAME = "../configs/encoderDecoderFusionv2ADAS_singleChannels.ini"
+# CONFIG_FILE_NAME = "../configs/encoderDecoderFusionv2ADAS_HSVsingleChannel.ini"
 # args = options(CONFIG_FILE_NAME)
 # adas = FlirAdasDataset(args.argsDataset)
+# adas.hr_shape = [512, 512]
+# adas.lr_shape = [512, 512]
 # print(len(adas))
 # data = adas.__getitem__(random.randint(0, len(adas)))
 #
+# print(data['gts'][0].numpy().transpose((1, 2, 0)).squeeze().max(), data['gts'][0].numpy().transpose((1, 2, 0)).squeeze().min())
 # import matplotlib.pyplot as plt
 # plt.ion()
 #
@@ -194,5 +231,5 @@ class FlirAdasDataset(IDataLoader):
 # plt.figure()
 # plt.imshow(data['gts'][0].numpy().transpose((1, 2, 0)).squeeze(), cmap='gray')
 # plt.waitforbuttonpress()
-#
+
 # tmp = 0
