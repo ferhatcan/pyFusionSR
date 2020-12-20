@@ -10,7 +10,10 @@ import os
 from assemblers.assemblerGetter import getExperimentWithDesiredAssembler
 
 DESIRED_ASSEMBLER = "fusionv2ADAS"
-CONFIG_FILE_NAME = "./configs/encoderDecoderFusionv2ADAS_YsingleChannels.ini"
+CONFIG_FILE_NAME = "./configs/encoderDecoderFusionv2ADAS_HSVsingleChannel.ini"
+
+which_channel = 2
+channel_type = 'HSV'
 
 def imshow(imageList):
     for i in range(len(imageList)):
@@ -23,45 +26,66 @@ def main():
 
     # rootPath = '/media/ferhatcan/common/Image_Datasets/rgbt-ped-detection/data/kaist-rgbt/images/set01/V000/'
     # rootPath = '/media/ferhatcan/common/Image_Datasets/TNO_Image_Fusion_Dataset/Triclobs_images/Bosnia/'
-    rootPath = '/media/ferhatcan/common/Image_Datasets/imagefusion_deeplearning-master/IV_images/'
+    rootPath = '/media/ferhatcan/common/Image_Datasets/VIFB-master/input/'
     # rootPath = '/media/ferhatcan/common/Image_Datasets/Flir/UPDATE 8-19-19_ SB Free Dataset-selected/FLIR_ADAS_1_3/val/'
 
-    visible = Image.open(os.path.join(rootPath, 'IR20.png'))
-    ir = Image.open(os.path.join(rootPath, 'VIS20.png'))
+    visible = Image.open(os.path.join(rootPath, 'VI/snow.jpg'))
+    ir = Image.open(os.path.join(rootPath, 'IR/snow.jpg'))
     ir = ir.convert('L')
     # visible = visible.convert('RGB')
-    ycbcr = visible.convert('YCbCr')
-    B = np.ndarray((visible.size[1], visible.size[0], 3), 'u1', ycbcr.tobytes())
-    visible = Image.fromarray(B[:, :, 0], 'L')
+    color_im = visible.convert(channel_type)
+    B = np.ndarray((visible.size[1], visible.size[0], 3), 'u1', color_im.tobytes())
+    visible = Image.fromarray(B[:, :, which_channel], 'L')
 
-    resize = transforms.Resize(size=[480, 640], interpolation=Image.BICUBIC)
+    original_size = [visible.size[1], visible.size[0]]
+    desiredSize = [value - (value % 32) for value in original_size]
+
+    resize = transforms.Resize(size=desiredSize, interpolation=Image.BICUBIC)
+    resize_original = transforms.Resize(size=original_size, interpolation=Image.BICUBIC)
+
     ir = resize(ir)
     visible = resize(visible)
-    ycbcr = resize(ycbcr)
-    B = np.ndarray((visible.size[1], visible.size[0], 3), 'u1', ycbcr.tobytes())
+    color_im = resize(color_im)
+    B = np.ndarray((visible.size[1], visible.size[0], 3), 'u1', color_im.tobytes())
 
     # Transform to tensor
     hr_image = tvF.to_tensor(visible)
     lr_image = tvF.to_tensor(ir)
 
+    # imshow([lr_image.unsqueeze(dim=0), lr_image.unsqueeze(dim=0)])
+
     data = dict()
     data["inputs"] = [lr_image.unsqueeze(dim=0), hr_image.unsqueeze(dim=0)]
 
+
     output = experiment.inference(data)
-    data["result"] = [kn.normalize_min_max(output["results"][0])]
+    # data["result"] = [kn.normalize_min_max(output["results"][0])]
     data["gts"] = data["inputs"]
 
     # imshow([lr_image.unsqueeze(dim=0), hr_image.unsqueeze(dim=0)])
-    lr_inp = torch.cat((lr_image.unsqueeze(dim=0), lr_image.unsqueeze(dim=0), lr_image.unsqueeze(dim=0)), dim=1)
-    vis_inp = ycbcr.convert('RGB')
+    lr_inp = ir.convert('RGB')
+    lr_inp = resize_original(lr_inp)
+    lr_inp = tvF.to_tensor(lr_inp).unsqueeze(dim=0)
+
+    vis_inp = color_im.convert('RGB')
+    vis_inp = resize_original(vis_inp)
     vis_inp = tvF.to_tensor(vis_inp).unsqueeze(dim=0)
     # imshow([lr_image.unsqueeze(dim=0), hr_image.unsqueeze(dim=0), data["result"][0].cpu().detach()])
+
+    data["result"] = [output["results"][0]]
+
+    print(B[:, :, 2].max(), B[:, :, 2].min())
+    print(data["result"][0].cpu().detach().numpy().max(), data["result"][0].cpu().detach().numpy().min())
     out = np.copy(B)
-    out[:, :, 0] = data["result"][0].cpu().detach().numpy() * (235 - 16) + 16
-    outPil = Image.fromarray(out, 'YCbCr')
+    out[:, :, which_channel] = data["result"][0].cpu().detach().numpy() * 255
+    outPil = Image.fromarray(out, channel_type)
     outPil = outPil.convert('RGB')
-    outPil = tvF.to_tensor(outPil).unsqueeze(dim=0)
-    imshow([lr_inp, vis_inp, outPil])
+
+    out_final = resize_original(outPil)
+
+    out_final = tvF.to_tensor(out_final).unsqueeze(dim=0)
+
+    imshow([lr_inp, vis_inp, out_final])
     # imshow([lr_inp, hr_image.unsqueeze(dim=0), data["result"][0].cpu().detach()])
     # imshow([kn.apply_grayscale(lr_inp), kn.apply_grayscale(hr_image.unsqueeze(dim=0)), kn.apply_grayscale(data["result"][0].cpu().detach())])
 
