@@ -53,26 +53,6 @@ class KaistDataset(BaseDataset):
         lr_ir, hr_ir, lr_eo, hr_eo = self.transform_multi(hr_image_lwir, hr_image_visible)
         return self.fillOutputDataDict([lr_ir, lr_eo], [hr_ir, hr_eo])
 
-    def transform_multi(self, image_lwir, image_visible):
-        image_lwir = image_lwir.convert('L')
-        # if self.channel_number == 1:
-        #     image_visible = image_visible.convert('L')
-
-        # Resize input image if its dimensions smaller than desired dimensions
-        resize = transforms.Resize(size=self.hr_shape, interpolation=self.downgrade)
-        if not (image_lwir.width > self.hr_shape[0] and image_lwir.height > self.hr_shape[1]):
-            image_lwir = resize(image_lwir)
-        if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
-            image_visible = resize(image_visible)
-
-        # random crop
-        crop = transforms.RandomCrop(size=self.hr_shape)
-        i, j, h, w = crop.get_params(image_lwir, self.hr_shape)
-        hr_image = tvF.crop(image_lwir, i, j, h, w)
-        hr_image2 = tvF.crop(image_visible, i, j, h, w)
-
-        return [*self.transform(hr_image), *self.transform(hr_image2)]
-
     def transform(self, image):
         hr_image = image
         # downscale to obtain low-resolution image
@@ -156,6 +136,9 @@ class KaistDataset(BaseDataset):
             else:
                 hr_image = tvF.normalize(hr_image, hr_mins, [1, ])
                 lr_image = tvF.normalize(lr_image, lr_mins, [1, ])
+        elif self.normalize == "divideBy255":
+            hr_image = tvF.normalize(hr_image, [0, ], [1, ])
+            lr_image = tvF.normalize(lr_image, [0, ], [1, ])
 
         # if self.channel_number == 3 & hr_image.size[-1] == 1:
         #     hr_image = hr_image
