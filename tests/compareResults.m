@@ -51,3 +51,7 @@ for i = 1:size(ir_images, 1)
     total_results(i, :) = curr_results;
     
 end
+
+%% Save Results
+average_result_HSV = sum(total_results);
+save('HSV_IR_results.mat', average_result_HSV, names);

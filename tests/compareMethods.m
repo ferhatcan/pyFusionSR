@@ -38,5 +38,5 @@ for i = 1:size(method_names, 2)
 end
 
 %% Save Results (run time is too much)
-save('compare_method_results.mat', 'total_result', 'names');
+save('compare_method_results.mat', 'total_result', 'names', 'method_names');
 
