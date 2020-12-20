@@ -394,7 +394,7 @@ for o = 1:norient                    % For each orientation.
 
 end  % For each orientation
 
-fprintf('                                          \r');
+% fprintf('                                          \r');
 
 %------------------------------------------------------------
 phaseCongruency=totalEnergy./(totalSumAn+epsilon);
