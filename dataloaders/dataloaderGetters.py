@@ -45,4 +45,21 @@ def getFlirAdasDataLoaders(args):
     ds_test = FlirAdasDataset(args=args, train=False)
     return _generateDataLoaders(ds_train, ds_test, args.batch_size, args.validation_size, args.shuffle_dataset)
 
+def getFlirAdasKaistCombinedDataLoaders(args):
+    train_set_paths = args.train_set_paths
+    test_set_paths = args.test_set_paths
+    args.train_set_paths = [train_set_paths[0]]
+    args.test_set_paths = [test_set_paths[0]]
+    ds_train_KAIST = KaistDataset(args=args, train=True)
+    ds_test_KAIST = KaistDataset(args=args, train=False)
+    args.train_set_paths = [train_set_paths[1]]
+    args.test_set_paths = [test_set_paths[1]]
+    ds_train_Flir = FlirAdasDataset(args=args, train=True)
+    ds_test_Flir = FlirAdasDataset(args=args, train=False)
+
+    ds_train = torch.utils.data.ConcatDataset([ds_train_KAIST, ds_train_Flir])
+    ds_test = torch.utils.data.ConcatDataset([ds_test_KAIST, ds_test_Flir])
+
+    return _generateDataLoaders(ds_train, ds_test, args.batch_size, args.validation_size, args.shuffle_dataset)
+
 
