@@ -12,7 +12,7 @@ class FusionQualityLoss(ILoss):
         self.qLoss = FusionQualityMetric(args)
 
     def forward(self, data: dict) -> list:
-        data["result"][0] = kn.normalize_min_max(data["result"][0])
+        # data["result"][0] = kn.normalize_min_max(data["result"][0])
         normalLoss = self.qLoss(data)
 
         # inplace 1 - overallQscore_abf
@@ -29,7 +29,7 @@ class FusionQualityEdgeLoss(ILoss):
         self.qLoss = FusionQualityMetric(args)
 
     def forward(self, data: dict) -> list:
-        data["result"][0] = kn.normalize_min_max(data["result"][0])
+        # data["result"][0] = kn.normalize_min_max(data["result"][0])
         edgeData = {"result": [], "gts": []}
         for inp in data["result"]:
             edgeData["result"].append(kn.normalize_min_max(kn.sobel(inp)))
@@ -151,6 +151,8 @@ class FusionQualityMetric(ILoss):
 
         Q0 = Q0_af * lambda_af + Q0_bf * lambda_bf
         Q0 = Q0 * self._calculate_weighted_quality_index(sigma_a, sigma_b)
+
+        
 
         # print(Q0.sum())
         overallQscore_abf = Q0.sum() #/ torch.prod(torch.tensor(Q0.shape), 0)
