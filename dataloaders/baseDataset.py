@@ -38,6 +38,11 @@ class BaseDataset(IDataLoader):
         self.channel_number = args.channel_number
         self.hr_shape = args.hr_shape
         self.downgrade = args.downgrade
+        self.channel_type = args.channel_type
+
+        possible_channel_types = ["RGB", "YCbCr", "HSV", "L"]
+        assert self.channel_type in possible_channel_types, "Given channel type must be included in {}".format(
+            possible_channel_types)
 
         if self.downgrade == "bicubic":
             self.downgrade = Image.BILINEAR
@@ -75,6 +80,39 @@ class BaseDataset(IDataLoader):
         data["inputs"] = inputs
         data["gts"] = gts
         return data
+
+    def transform_multi(self, image_ir, image_visible):
+        image_ir = image_ir.convert('L')
+        if self.channel_number == 3:
+            image_visible = image_visible.convert('RGB')
+        else:
+            if self.channel_type == "YCbCr":
+                ycbcr = image_visible.convert('YCbCr')
+                B = np.ndarray((image_visible.size[1], image_visible.size[0], 3), 'u1', ycbcr.tobytes())
+                image_visible = Image.fromarray(B[:, :, 0], 'L')
+            elif self.channel_type == "HSV":
+                hsv = image_visible.convert('HSV')
+                B = np.ndarray((image_visible.size[1], image_visible.size[0], 3), 'u1', hsv.tobytes())
+                image_visible = Image.fromarray(B[:, :, -1], 'L')
+            else:
+                image_visible = image_visible.convert('L')
+        # make image dimensions same to make crop right segments as possible
+        # resize = transforms.Resize(size=[image_ir.height, image_ir.width], interpolation=self.downgrade)
+        # image_visible = resize(image_visible)
+        # Resize input image if its dimensions smaller than desired dimensions
+        resize = transforms.Resize(size=self.hr_shape, interpolation=self.downgrade)
+        if not (image_ir.width > self.hr_shape[0] and image_ir.height > self.hr_shape[1]):
+            image_ir = resize(image_ir)
+        if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
+            image_visible = resize(image_visible)
+
+        # random crop
+        crop = transforms.RandomCrop(size=self.hr_shape)
+        i, j, h, w = crop.get_params(image_ir, self.hr_shape)
+        hr_image = tvF.crop(image_ir, i, j, h, w)
+        hr_image2 = tvF.crop(image_visible, i, j, h, w)
+
+        return [*self.transform(hr_image), *self.transform(hr_image2)]
 
     def transform(self, image):
         if self.channel_number == 1:
@@ -163,6 +201,9 @@ class BaseDataset(IDataLoader):
                 hr_image = tvF.normalize(hr_image, hr_mins, [1, 1, 1])
                 lr_image = tvF.normalize(lr_image, lr_mins, [1, 1, 1])
             #     print('image not correct')
+        elif self.normalize == "divideBy255":
+            hr_image = tvF.normalize(hr_image, [0, ], [1, ])
+            lr_image = tvF.normalize(lr_image, [0, ], [1, ])
 
         # if self.channel_number == 3 & hr_image.size[-1] == 1:
         #     hr_image = hr_image
