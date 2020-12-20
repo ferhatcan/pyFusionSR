@@ -43,8 +43,8 @@ class ParseDataset(ParseCommons):
     def __init__(self, config: ConfigParser):
         super(ParseDataset, self).__init__(config)
 
-        self.train_set_paths    = config["DATASET"]["train_set_paths"].split(',')
-        self.test_set_paths     = config["DATASET"]["test_set_paths"].split(',')
+        self.train_set_paths    = config["DATASET"]["train_set_paths"].split(',\n')
+        self.test_set_paths     = config["DATASET"]["test_set_paths"].split(',\n')
         self.rgb_range          = int(config["DATASET"]["rgb_range"])
         self.batch_size         = int(config["DATASET"]["batch_size"])
         self.scale              = int(config["DATASET"]["scale"])
@@ -61,6 +61,7 @@ class ParseDataset(ParseCommons):
         self.downgrade          = config["DATASET"]["downgrade"]
         self.validation_size    = float(config["DATASET"]["validation_size"])
         self.shuffle_dataset    = config["DATASET"].getboolean("shuffle_dataset")
+        self.which_channel      = int(config["DATASET"]["which_channel"]) if "which_channel" in config["DATASET"] else 0
         self.channel_type       = 'RGB'
         if "channel_type" in config["DATASET"]:
             self.channel_type = config["DATASET"]["channel_type"]
