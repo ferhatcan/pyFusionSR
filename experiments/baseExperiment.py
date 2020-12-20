@@ -216,13 +216,17 @@ class BaseExperiment(IExperiment):
     def load(self, loadName: str):
         # @todo there can be more than 1 new loss function. Not add only one value
         # @todo added value should be added with type of itself (greater or less)
-        self.records = self.logger.loadCheckpoint(loadName)
-        if self.numOfBenchmark > len(self.records["best_benchmarks"]['values']):
-            self.records["best_benchmarks"]["values"].append(0)
-            self.records["best_benchmarks"]["epoch_nums"].append(0)
-        if self.numOfLoss > len(self.records["best_validation_loss"]['values']):
-            self.records["best_validation_loss"]["values"].append(0)
-            self.records["best_validation_loss"]["epoch_nums"].append(0)
-        self.model.load_state_dict(self.records["model_state_dict"])
-        self.optimizer.load_state_dict(self.records["optimizer"])
-        self.lr_scheduler.load_state_dict(self.records["lr_scheduler"])
+        loaded_record = self.logger.loadCheckpoint(loadName)
+        if loaded_record is None:
+            return
+        else:
+            self.records = loaded_record
+            if self.numOfBenchmark > len(self.records["best_benchmarks"]['values']):
+                self.records["best_benchmarks"]["values"].append(0)
+                self.records["best_benchmarks"]["epoch_nums"].append(0)
+            if self.numOfLoss > len(self.records["best_validation_loss"]['values']):
+                self.records["best_validation_loss"]["values"].append(0)
+                self.records["best_validation_loss"]["epoch_nums"].append(0)
+            self.model.load_state_dict(self.records["model_state_dict"])
+            self.optimizer.load_state_dict(self.records["optimizer"])
+            self.lr_scheduler.load_state_dict(self.records["lr_scheduler"])
