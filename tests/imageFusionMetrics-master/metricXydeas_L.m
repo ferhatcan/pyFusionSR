@@ -90,7 +90,8 @@ L=1;
 Wa=img1G.^L;
 Wb=img2G.^L;
 
-nominator = sum(sum(Qaf.*Wa+Qbf.*Wb));
+Rnm = (fuseG < img1G & fuseG < img2G);
+nominator = sum(sum(Rnm .* ((1 - Qaf) .* Wa + (1 - Qbf) .* Wb)));
 denominator = sum(sum(Wa + Wb));
 
 %res=sum(sum(Qaf.*Wa+Qbf.*Wb))/sum(sum(Wa+Wb));

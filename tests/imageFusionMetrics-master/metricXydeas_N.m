@@ -90,9 +90,12 @@ L=1;
 Wa=img1G.^L;
 Wb=img2G.^L;
 
-nominator = sum(sum(Qaf.*Wa+Qbf.*Wb));
-denominator = sum(sum(Wa + Wb));
+Nnm = 2 - Qaf - Qbf;
+Nnm(~(fuseG > img1G & fuseG > img2G)) = 0;
 
 %res=sum(sum(Qaf.*Wa+Qbf.*Wb))/sum(sum(Wa+Wb));
-% res=mean2((Qaf.*Wa+Qbf.*Wb)./(Wa+Wb));
+
+nominator = sum(sum(Nnm .* (Wa + Wb)));
+denominator = sum(sum(Wa + Wb));
+
 res = nominator / denominator;
