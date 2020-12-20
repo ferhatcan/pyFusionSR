@@ -136,6 +136,9 @@ class FlirAdasDataset(IDataLoader):
         hr_image = tvF.crop(image_ir, i, j, h, w)
         hr_image2 = tvF.crop(image_visible, i, j, h, w)
 
+        # print(np.array(hr_image).max(), np.array(hr_image).min())
+        # print(np.array(hr_image2).max(), np.array(hr_image2).min())
+
         return [*self.transform(hr_image), *self.transform(hr_image2)]
 
     def transform(self, image):
@@ -202,11 +205,14 @@ class FlirAdasDataset(IDataLoader):
             else:
                 hr_image = tvF.normalize(hr_image, hr_mins, [1, ])
                 lr_image = tvF.normalize(lr_image, lr_mins, [1, ])
+        elif self.normalize == "divideBy255":
+            hr_image = tvF.normalize(hr_image, [0, ], [1, ])
+            lr_image = tvF.normalize(lr_image, [0, ], [1, ])
 
         return lr_image, hr_image
 
     @staticmethod
-    def randomGenerator(self):
+    def randomGenerator():
         return random.random(), random.random()
 
 
@@ -221,7 +227,7 @@ class FlirAdasDataset(IDataLoader):
 # print(len(adas))
 # data = adas.__getitem__(random.randint(0, len(adas)))
 #
-# print(data['gts'][0].numpy().transpose((1, 2, 0)).squeeze().max(), data['gts'][0].numpy().transpose((1, 2, 0)).squeeze().min())
+# print(data['gts'][1].numpy().transpose((1, 2, 0)).squeeze().max(), data['gts'][1].numpy().transpose((1, 2, 0)).squeeze().min())
 # import matplotlib.pyplot as plt
 # plt.ion()
 #
