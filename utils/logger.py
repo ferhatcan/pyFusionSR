@@ -82,9 +82,11 @@ class Logger:
         checkNameValidty(fileName)
 
         load_path = os.path.join(self.destination_checkpoint, fileName) + '.pth'
-        assert os.path.exists(load_path), 'There is no state exist'
-
-        return torch.load(load_path)
+        try:
+            return torch.load(load_path)
+        except:
+            print(f'There is no {load_path} exist to load')
+            return None
 
     @staticmethod
     def getDefaultLogTemplates(type_name, inputs: list):
