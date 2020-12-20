@@ -1,15 +1,15 @@
 function [total_results, names] = evaluateAllPairs(fuse_images, ir_images, vis_images, method_name)
 % @todo 12 is a mgic number should be parametrized
-total_results = zeros(size(fuse_images, 1), 12);
+% total_results = zeros(size(fuse_images, 1), 12);
 
 for i = 1:size(ir_images, 1)
-    disp(ir_images(i).name);
-    disp(vis_images(i).name);
+%     disp(ir_images(i).name);
+%     disp(vis_images(i).name);
     
     fusedImageName = strcat(ir_images(i).name(1:end-4), '_', method_name, '.jpg');
     fuse_index = find(contains({fuse_images.name}, fusedImageName));
     
-    disp(fuse_images(fuse_index).name);
+%     disp(fuse_images(fuse_index).name);
     
     
     im_fused = imread(fullfile(fuse_images(fuse_index).folder, fuse_images(fuse_index).name));
