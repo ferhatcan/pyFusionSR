@@ -30,10 +30,21 @@ results(metric_num) = resultWang;
 metric_num = metric_num + 1;
 
 % Xydeas Method
-resultXydeas = metricXydeas(im_vis, im_ir, im_fused);
-names{metric_num} = 'Xydeas';
+resultXydeas = metricXydeas(g_im_vis, g_im_ir, g_im_fused);
+names{metric_num} = 'Xydeas-Q';
 results(metric_num) = resultXydeas;
 metric_num = metric_num + 1;
+
+resultXydeas = metricXydeas_L(g_im_vis, g_im_ir, g_im_fused);
+names{metric_num} = 'Xydeas-L';
+results(metric_num) = resultXydeas;
+metric_num = metric_num + 1;
+
+resultXydeas = metricXydeas_N(g_im_vis, g_im_ir, g_im_fused);
+names{metric_num} = 'Xydeas-N';
+results(metric_num) = resultXydeas;
+metric_num = metric_num + 1;
+
 
 % PWW Method
 resultPww = metricPWW(im_vis, im_ir, im_fused);
@@ -54,7 +65,7 @@ results(metric_num) = resultZhao;
 metric_num = metric_num + 1;
 
 %Peilla Method
-resultPeilla = metricPeilla(im_vis, im_ir, im_fused, 3);
+resultPeilla = metricPeilla(g_im_vis, g_im_ir, g_im_fused, 3);
 names{metric_num} = 'Peilla';
 results(metric_num) = resultPeilla;
 metric_num = metric_num + 1;
@@ -65,13 +76,13 @@ metric_num = metric_num + 1;
 % results(metric_num) = resultCvejic1;
 % metric_num = metric_num + 1;
 
-resultCvejic2 = metricCvejic(im_vis, im_ir, im_fused, 2);
+resultCvejic2 = metricCvejic(g_im_vis, g_im_ir, g_im_fused, 2);
 names{metric_num} = 'Cvejic-2';
 results(metric_num) = resultCvejic2;
 metric_num = metric_num + 1;
 
 %Yang Method
-resultYang = metricYang(im_vis, im_ir, im_fused);
+resultYang = metricYang(g_im_vis, g_im_ir, g_im_fused);
 names{metric_num} = 'Yang';
 results(metric_num) = resultYang;
 metric_num = metric_num + 1;
