@@ -45,16 +45,19 @@ class FlirAdasDataset(IDataLoader):
         self.visPath = 'RGB'
         self.extensions = ["jpg", "jpeg", "png"]
 
-        self.imageFiles = dict()
-        self.imageFiles["thermal"] = []
-        self.imageFiles["visible"] = []
+        # self.imageFiles = dict()
+        # self.imageFiles["thermal"] = np.array([], dtype=object)
+        # self.imageFiles["visible"] = np.array([], dtype=object)
+        self.imageFiles = np.array([np.array([]), np.array([])])
 
         self.extract_image_files()
-        assert (len(self.imageFiles["thermal"]) > 0), "There should be an valid dataset path"
+        assert (self.imageFiles.shape[1] > 0), "There should be an valid dataset path"
 
         self.homography = np.load("./dataloaders/homography_flirADAS.npy")
 
     def extract_image_files(self):
+        lwir_im_paths = self.imageFiles[0]
+        visible_im_paths = self.imageFiles[1]
         for image_path in self.image_paths:
             searchPath = os.path.join(image_path, self.visPath)
             irSearchPath = os.path.join(image_path, self.irPath)
@@ -63,16 +66,17 @@ class FlirAdasDataset(IDataLoader):
                     ext = file.split('.')[-1]
                     if ext in self.extensions:
                         if os.path.exists(os.path.join(irSearchPath,  file.split('.')[0] + '.jpeg')):
-                            self.imageFiles["visible"].append(os.path.join(searchPath, file))
-                            self.imageFiles["thermal"].append(os.path.join(irSearchPath, file.split('.')[0] + '.jpeg'))
+                            visible_im_paths = np.append(visible_im_paths, np.array([os.path.join(searchPath, file)]))
+                            lwir_im_paths = np.append(lwir_im_paths, np.array([os.path.join(irSearchPath, file.split('.')[0] + '.jpeg')]))
 
+        self.imageFiles = np.array([lwir_im_paths, visible_im_paths])
 
     def __len__(self):
-        return len(self.imageFiles["thermal"])
+        return self.imageFiles.shape[1]
 
     def __getitem__(self, item: int) -> dict:
-        visIm = Image.open(self.imageFiles["visible"][item])
-        irIm = Image.open(self.imageFiles["thermal"][item]).convert('RGB')
+        visIm = Image.open(self.imageFiles[1][item]).convert('RGB')
+        irIm = Image.open(self.imageFiles[0][item]).convert('RGB')
 
         visIm = np.array(visIm)
         irIm = np.array(irIm)
@@ -86,14 +90,14 @@ class FlirAdasDataset(IDataLoader):
         else:
             offset = 200
 
-        registered_ir = cv2.warpPerspective(irIm, self.homography, (width, height))
+        irIm = cv2.warpPerspective(irIm, self.homography, (width, height))
 
         # DEBUGGING
-        # dst = cv2.addWeighted(registered_ir, 0.7, visIm, 0.3, 0.0)
+        # dst = cv2.addWeighted(irIm, 0.7, visIm, 0.3, 0.0)
         # cv2.imshow("Blended", imutils.resize(dst, width=1000))
         # cv2.waitKey()
 
-        ir_lr, ir_hr, vis_lr, vis_hr = self.transform_multi(Image.fromarray(registered_ir[offset:height-offset, offset:width-offset]),
+        ir_lr, ir_hr, vis_lr, vis_hr = self.transform_multi(Image.fromarray(irIm[offset:height-offset, offset:width-offset]),
                                                             Image.fromarray(visIm[offset:height-offset, offset:width-offset]))
 
         return self.fillOutputDataDict([ir_lr, vis_lr], [ir_hr, vis_hr])
@@ -125,16 +129,19 @@ class FlirAdasDataset(IDataLoader):
         # image_visible = resize(image_visible)
         # Resize input image if its dimensions smaller than desired dimensions
         resize = transforms.Resize(size=self.hr_shape, interpolation=self.downgrade)
-        if not (image_ir.width > self.hr_shape[0] and image_ir.height > self.hr_shape[1]):
-            image_ir = resize(image_ir)
-        if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
-            image_visible = resize(image_visible)
+        # if not (image_ir.width > self.hr_shape[0] and image_ir.height > self.hr_shape[1]):
+        #     image_ir = resize(image_ir)
+        # if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
+        #     image_visible = resize(image_visible)
 
         # random crop
-        crop = transforms.RandomCrop(size=self.hr_shape)
-        i, j, h, w = crop.get_params(image_ir, self.hr_shape)
-        hr_image = tvF.crop(image_ir, i, j, h, w)
-        hr_image2 = tvF.crop(image_visible, i, j, h, w)
+        # crop = transforms.RandomCrop(size=self.hr_shape)
+        # i, j, h, w = crop.get_params(image_ir, self.hr_shape)
+        # hr_image = tvF.crop(image_ir, i, j, h, w)
+        # hr_image2 = tvF.crop(image_visible, i, j, h, w)
+
+        hr_image = resize(image_ir)
+        hr_image2 = resize(image_visible)
 
         # print(np.array(hr_image).max(), np.array(hr_image).min())
         # print(np.array(hr_image2).max(), np.array(hr_image2).min())
@@ -226,6 +233,7 @@ class FlirAdasDataset(IDataLoader):
 # adas.lr_shape = [512, 512]
 # print(len(adas))
 # data = adas.__getitem__(random.randint(0, len(adas)))
+# # data = adas.__getitem__(2)
 #
 # print(data['gts'][1].numpy().transpose((1, 2, 0)).squeeze().max(), data['gts'][1].numpy().transpose((1, 2, 0)).squeeze().min())
 # import matplotlib.pyplot as plt
