@@ -17,13 +17,13 @@ class KaistDataset(BaseDataset):
         self.root = os.path.join(self.root, 'images')
         super(KaistDataset, self).__init__([], args)
 
-        self.imageFiles = [[], []]
+        self.imageFiles = np.array([np.array([]), np.array([])])
         self.extract_image_files(ds_files)
 
 
     def extract_image_files(self, ds_files):
-        lwir_im_paths = []
-        visible_im_paths = []
+        lwir_im_paths = self.imageFiles[0]
+        visible_im_paths = self.imageFiles[1]
         for ds_file in ds_files:
             im_file = open(ds_file, 'r')
             lines = im_file.readlines()
@@ -36,16 +36,18 @@ class KaistDataset(BaseDataset):
                     line_split = os.path.split(line)
                 lwir_im_path = os.path.join(self.root, line_split[0], 'lwir', line_split[1] + '.jpg')
                 visible_im_path = os.path.join(self.root, line_split[0], 'visible', line_split[1] + '.jpg')
-                lwir_im_paths.append(lwir_im_path)
-                visible_im_paths.append(visible_im_path)
+                lwir_im_paths = np.append(lwir_im_paths, np.array([lwir_im_path]))
+                visible_im_paths = np.append(visible_im_paths, np.array([visible_im_path]))
+                # lwir_im_paths.append(lwir_im_path)
+                # visible_im_paths.append(visible_im_path)
 
         #print(lwir_im_paths[0], len(lwir_im_paths))
         #print(visible_im_paths[0], len(visible_im_paths))
 
-        self.imageFiles = [lwir_im_paths, visible_im_paths]
+        self.imageFiles = np.array([lwir_im_paths, visible_im_paths])
 
     def __len__(self):
-        return len(self.imageFiles[0])
+        return self.imageFiles.shape[1]
 
     def __getitem__(self, index: int) -> dict:
         hr_image_lwir = Image.open(self.imageFiles[0][index])
@@ -147,26 +149,23 @@ class KaistDataset(BaseDataset):
         return lr_image, hr_image
 
 #Testing purposes
-#from dataloaders.irChallangeDataset import irChallangeDataset
-#from utils.checkpoint import checkpoint
-#from options import options
-#CONFIG_FILE_NAME = "./../configs/PFFx2_fineTuning_KAIST.ini"
-#args = options(CONFIG_FILE_NAME)
-#ckp = checkpoint(args)
-#kaist = kaistDataset(args)
-#print(len(kaist.loader_val))
-#data = next(iter(kaist.loader_train))
-#data = next(iter(kaist.loader_val))
-#data = next(iter(kaist.loader_test))
+# from options import options
+# CONFIG_FILE_NAME = "../configs/encoderDecoderFusionv2ADAS_HSVsingleChannel.ini"
+# args = options(CONFIG_FILE_NAME)
+# kaist = KaistDataset(args.argsDataset)
+# kaist.hr_shape = [256, 256]
+# kaist.lr_shape = [256, 256]
+# print(len(kaist))
+# data = kaist.__getitem__(random.randint(0, len(kaist)))
 #
-#import matplotlib.pyplot as plt
-#plt.ion()
+# print(data['gts'][1].numpy().transpose((1, 2, 0)).squeeze().max(), data['gts'][1].numpy().transpose((1, 2, 0)).squeeze().min())
+# import matplotlib.pyplot as plt
+# plt.ion()
 #
-#tmp = data['visible'][0].numpy().squeeze()
-#plt.imshow(data['visible'][1].numpy().squeeze(), cmap='gray')
-#plt.waitforbuttonpress()
-#plt.figure()
-#plt.imshow(data['lwir'][1].numpy().squeeze(), cmap='gray')
-#plt.waitforbuttonpress()
-#
+# tmp = data['inputs'][1].numpy().transpose((1, 2, 0)).squeeze()
+# plt.imshow(data['inputs'][1].numpy().transpose((1, 2, 0)).squeeze(), cmap='gray')
+# plt.waitforbuttonpress()
+# plt.figure()
+# plt.imshow(data['gts'][0].numpy().transpose((1, 2, 0)).squeeze(), cmap='gray')
+# plt.waitforbuttonpress()
 #tmp = 0
