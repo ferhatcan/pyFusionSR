@@ -1,6 +1,8 @@
 import torch
-import gc
-from operator import add
+import time
+from texttable import Texttable
+
+
 
 from experiments.IExperiment import IExperiment
 
@@ -47,20 +49,34 @@ class BaseExperiment(IExperiment):
 
     def train_one_epoch(self):
         total_losses = [0] * self.numOfLoss
+        dataLoadTime, modelProcessTime = 0, 0
+
+
+        dataTimer = time.time()
         for batch_number, images in enumerate(self.dataloaders["train"]):
             for part in images:
                 for i, image in enumerate(images[part]):
                     images[part][i] = image.to(self.device)
-            _, losses = self.method.train(images)
-            total_losses = list(map(add, total_losses, images["inputs"][0].shape[0] * losses))
-            del images
-            torch.cuda.empty_cache()
+            dataLoadTime += time.time() - dataTimer
+            dataTimer = time.time()
+            modelTimer = time.time()
+            result, losses = self.method.train(images)
+            modelProcessTime += time.time() - modelTimer
+            modelTimer = time.time()
+            # Following line causes memory leak
+            # total_losses = list(map(add, total_losses, images["inputs"][0].shape[0] * losses))
+            for index, loss in enumerate(losses):
+                total_losses[index] = total_losses[index] + loss.cpu().detach().numpy()
             if (batch_number + 1) % int(self.args.log_every * len(self.dataloaders["train"])) == 0:
                 self.logger.logText(self.logger.getDefaultLogTemplates('validationLog',
                                                                        [(batch_number + 1) * self.args.batch_size,
                                                                         len(self.dataloaders["train"]) * self.args.batch_size,
-                                                                        total_losses[-1] / int((batch_number + 1)), 0, 0]),
-                                    'epochLog', verbose=True)
+                                                                        total_losses[-1] / int(batch_number + 1),
+                                                                        modelProcessTime / int(batch_number + 1),
+                                                                        dataLoadTime / int(batch_number + 1)]),
+                                    'epochLog', verbose=True, flush=False)
+                # print(self.loss['types'])
+                # print([value.item() / int(batch_number + 1) for value in total_losses])
                 if total_losses[-1] / int((batch_number + 1)) < self.records["best_loss"]:
                     self.records["best_loss"] = total_losses[-1] / int((batch_number + 1))
 
@@ -79,6 +95,9 @@ class BaseExperiment(IExperiment):
                         self.save("model_best")
                         # @todo add log best valid bench - also tensorboard
 
+        print('')
+        print('Total model prosess time: {:.3f}, total data load time: {:.3f}, total process time: {:.3f} msec'
+              .format(modelProcessTime, dataLoadTime, modelProcessTime + dataLoadTime))
         self.lr_scheduler.step()
         average_losses = [x / (len(self.dataloaders["train"])) for x in total_losses]
         return average_losses
@@ -117,14 +136,14 @@ class BaseExperiment(IExperiment):
 
     def _txtLogs(self, fileName, training_loss, validation_loss, validation_benchmark):
         self.logger.logText('----------------------------\nTraining Results...\n', fileName, verbose=True)
-        for i, loss_name in enumerate(self.loss['types']):
-            trainTxt = self.logger.getDefaultLogTemplates('trainLoss', [loss_name, training_loss[i]])
-            valTxt = self.logger.getDefaultLogTemplates('validationLoss', [loss_name, validation_loss[i]])
-            self.logger.logText(trainTxt, fileName, verbose=True)
-            self.logger.logText(valTxt, fileName, verbose=True)
-        for i, bench_name in enumerate(self.benchmark.benchmark["name"]):
-            benchTxt = self.logger.getDefaultLogTemplates('benchmark', [bench_name, validation_benchmark[i]])
-            self.logger.logText(benchTxt, fileName, verbose=True)
+        t = Texttable()
+        t.add_rows([['**losses**'] + self.loss['types'], ['training'] + training_loss, ['validation'] + validation_loss])
+        self.logger.logText(t.draw() + '\n', fileName, verbose=True)
+        t = Texttable()
+        validation_benchmark[0] = 1.345
+        t.add_rows([['**benchs**'] + self.benchmark.benchmark["name"], ['results'] + validation_benchmark])
+        self.logger.logText(t.draw() + '\n', fileName, verbose=True)
+        return
 
     def train(self):
         # @todo add timer
@@ -152,7 +171,7 @@ class BaseExperiment(IExperiment):
             referenceData["results"] = test_dict["results"]
             self._tbImagelogs(referenceData)
             self._tbScalarLogs(average_losses, validation_loss, validation_benchmark)
-            self._txtLogs('epochLog', average_losses, validation_loss, validation_benchmark)
+            self._txtLogs('training_log', average_losses, validation_loss, validation_benchmark)
 
     def test_dataloader(self, dataloader):
         total_losses = [0] * self.numOfLoss
@@ -163,7 +182,10 @@ class BaseExperiment(IExperiment):
             benchmark_comparisons = []
             batch_num = images['inputs'][0].shape[0]
             test_dict = self.test_single(images)
-            total_losses = list(map(add, total_losses, batch_num * test_dict["losses"]))
+            # memory leak in following line
+            # total_losses = list(map(add, total_losses, batch_num * test_dict["losses"]))
+            for index, loss in enumerate(test_dict["losses"]):
+                total_losses[index] = total_losses[index] + loss.cpu().detach().numpy()
             images["result"] = test_dict["results"]
             benchmarkResults = self.benchmark.getBenchmarkResults(images)
             for index, bench in enumerate(benchmarkResults):
