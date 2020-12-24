@@ -101,16 +101,19 @@ class BaseDataset(IDataLoader):
         # image_visible = resize(image_visible)
         # Resize input image if its dimensions smaller than desired dimensions
         resize = transforms.Resize(size=self.hr_shape, interpolation=self.downgrade)
-        if not (image_ir.width > self.hr_shape[0] and image_ir.height > self.hr_shape[1]):
-            image_ir = resize(image_ir)
-        if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
-            image_visible = resize(image_visible)
+        # if not (image_ir.width > self.hr_shape[0] and image_ir.height > self.hr_shape[1]):
+        #     image_ir = resize(image_ir)
+        # if not (image_visible.width > self.hr_shape[0] and image_visible.height > self.hr_shape[1]):
+        #     image_visible = resize(image_visible)
 
         # random crop
-        crop = transforms.RandomCrop(size=self.hr_shape)
-        i, j, h, w = crop.get_params(image_ir, self.hr_shape)
-        hr_image = tvF.crop(image_ir, i, j, h, w)
-        hr_image2 = tvF.crop(image_visible, i, j, h, w)
+        # crop = transforms.RandomCrop(size=self.hr_shape)
+        # i, j, h, w = crop.get_params(image_ir, self.hr_shape)
+        # hr_image = tvF.crop(image_ir, i, j, h, w)
+        # hr_image2 = tvF.crop(image_visible, i, j, h, w)
+
+        hr_image = resize(image_ir)
+        hr_image2 = resize(image_visible)
 
         return [*self.transform(hr_image), *self.transform(hr_image2)]
 
