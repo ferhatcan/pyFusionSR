@@ -72,8 +72,8 @@ class BaseExperiment(IExperiment):
                                                                        [(batch_number + 1) * self.args.batch_size,
                                                                         len(self.dataloaders["train"]) * self.args.batch_size,
                                                                         total_losses[-1] / int(batch_number + 1),
-                                                                        modelProcessTime / int(batch_number + 1),
-                                                                        dataLoadTime / int(batch_number + 1)]),
+                                                                        modelProcessTime / int(batch_number + 1) * 100,
+                                                                        dataLoadTime / int(batch_number + 1) * 100]),
                                     'epochLog', verbose=True, flush=False)
                 # print(self.loss['types'])
                 # print([value.item() / int(batch_number + 1) for value in total_losses])
@@ -96,8 +96,8 @@ class BaseExperiment(IExperiment):
                         # @todo add log best valid bench - also tensorboard
 
         print('')
-        print('Total model prosess time: {:.3f}, total data load time: {:.3f}, total process time: {:.3f} msec'
-              .format(modelProcessTime, dataLoadTime, modelProcessTime + dataLoadTime))
+        print('Total model prosess time: {:.3f}, total data load time: {:.3f}, total process time: {:.3f} mins'
+              .format(modelProcessTime / 60, dataLoadTime / 60, modelProcessTime / 60 + dataLoadTime / 60))
         self.lr_scheduler.step()
         average_losses = [x / (len(self.dataloaders["train"])) for x in total_losses]
         return average_losses
