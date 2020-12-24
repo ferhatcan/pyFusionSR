@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import datetime
 
@@ -17,7 +18,7 @@ class Logger:
     templates = {
         'epochSummary': {'input_num': 1, 'template': "[Epoch {:4d}] Training results: \n"},
         'epochLog': {'input_num': 2, 'template': '[Epoch {}]\tLearning rate: {:.4f}\n'},
-        'validationLog': {'input_num': 5, 'template': '[{}/{}]\t{}\t{:.1f}+{:.1f} msec\n'},
+        'validationLog': {'input_num': 5, 'template': '\r[{}/{}]\t{}\t{:.1f}+{:.1f} msec'},
         'trainLoss': {'input_num': 2, 'template': '{} Train Loss: {:.4f}\n'},
         'benchmark': {'input_num': 2, 'template': '{} Benchmark Result: {:.4f}\n'},
         'validationLoss': {'input_num': 2, 'template': '{} Validation Loss: {:.4f}\n'},
@@ -57,7 +58,7 @@ class Logger:
             convertedImage = trans(im)
             convertedImage.save(saveName + '_{}.png'.format(i))
 
-    def logText(self, text, fileName, force_reset=False, verbose=False):
+    def logText(self, text, fileName, force_reset=False, verbose=False, flush=False):
         checkNameValidty(fileName)
 
         savePath = os.path.join(self.destination_logText, fileName) + '.txt'
@@ -65,6 +66,8 @@ class Logger:
             os.remove(savePath)
         with open(savePath, 'a') as file:
             file.write(text)
+        if flush:
+            sys.stdout.flush()
         if verbose:
             print(text, end='')
 
