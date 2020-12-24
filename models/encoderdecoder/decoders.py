@@ -47,26 +47,26 @@ class DecoderPyramidv2(nn.Module):
     def forward(self, feats):
         assert len(feats) == 5, 'There should be 5 layer outputs for decoder!'
 
-        out1 = self.layer1(feats['layer4'])
-        out1 = torch.cat((feats['layer3'], out1), dim=1)
+        out = self.layer1(feats['layer4'])
+        out = torch.cat((feats['layer3'], out), dim=1)
 
-        out2 = self.layer2(out1)
-        out2 = torch.cat((feats['layer2'], out2), dim=1)
+        out = self.layer2(out)
+        out = torch.cat((feats['layer2'], out), dim=1)
 
-        out3 = self.layer3(out2)
-        out3 = torch.cat((feats['layer1'], out3), dim=1)
+        out = self.layer3(out)
+        out = torch.cat((feats['layer1'], out), dim=1)
 
-        out4 = self.layer4(out3)
-        out4 = torch.cat((feats['input_layer'], out4), dim=1)
+        out = self.layer4(out)
+        out = torch.cat((feats['input_layer'], out), dim=1)
 
-        out5 = self.layer5(out4)
+        out = self.layer5(out)
 
         if not len(self.layers_scale) == 0:
-            out5 = self.layer_scale(out5)
+            out = self.layer_scale(out)
 
-        out6 = self.output_layer(out5)
+        out = self.output_layer(out)
 
-        return out6
+        return out
 
 
 class DecoderPyramid(nn.Module):
