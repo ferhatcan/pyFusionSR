@@ -52,7 +52,7 @@ class FusionQualityEdgeLoss(ILoss):
         # edgeLoss_tmp = [torch.pow(edgeLoss[i], torch.tensor(0.7)) for i in range(len(edgeLoss))]
 
         # debugging
-        data["edges"] = edgeData
+        # data["edges"] = edgeData
         # debugging
 
         # inplace 1 - overallQscore_abf
