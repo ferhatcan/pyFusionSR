@@ -4,7 +4,7 @@ from operator import lt, gt
 import torch.nn as nn
 from PIL import Image
 from skimage.measure import *
-from loss.fusionQualityLoss import FusionQualityEdgeLoss
+from loss.fusionQualityLoss import FusionQualityEdgeLoss, FusionQualityLoss
 
 
 class BenchmarkMetrics:
@@ -149,9 +149,14 @@ class BenchmarkMetrics:
         args = self.args
         args.hr_shape = inputs["gts"][0].shape[-2:]
         lossQE = FusionQualityEdgeLoss(args)
+        lossQ = FusionQualityLoss(args)
         QEs = lossQE(inputs)
-        for QE in QEs:
-            scores.append(QE.item() * inputs["gts"][0].shape[0])
+        Qs = lossQ(inputs)
+        for Q, QE in zip(Qs, QEs):
+            scoreQ = Q.item() * -1 + 1
+            scoreQE = QE.item() * -1 + 1
+            totalScore = scoreQ * scoreQE # !!!!!@todo tidy here
+            scores.append(totalScore * inputs["gts"][0].shape[0])
             scoreTxts.append(txt.format(scores[-1], maxVal))
 
         return {'scores': scores, 'score_texts': scoreTxts}
