@@ -12,6 +12,8 @@ from optimizers.optimizerSchedulerGetters import *
 def getExperiment(config_file):
     CONFIG_FILE_NAME = config_file
 
+    torch.autograd.set_detect_anomaly(True)
+
     args = options(CONFIG_FILE_NAME)
     print("The system will use following resource: {:}".format(args.argsCommon.device))
     print("Experiment Name: " + args.argsCommon.experiment_name)
