@@ -63,15 +63,17 @@ class BaseExperiment(IExperiment):
             result, losses = self.method.train(images)
             modelProcessTime += time.time() - modelTimer
             modelTimer = time.time()
+
             # Following line causes memory leak
             # total_losses = list(map(add, total_losses, images["inputs"][0].shape[0] * losses))
             for index, loss in enumerate(losses):
                 total_losses[index] = total_losses[index] + loss.cpu().detach().numpy()
             if (batch_number + 1) % int(self.args.log_every * len(self.dataloaders["train"])) == 0:
+                avg_losses = [value/int(batch_number + 1) for value in total_losses]
                 self.logger.logText(self.logger.getDefaultLogTemplates('validationLog',
                                                                        [(batch_number + 1) * self.args.batch_size,
                                                                         len(self.dataloaders["train"]) * self.args.batch_size,
-                                                                        total_losses[-1] / int(batch_number + 1),
+                                                                        avg_losses,
                                                                         modelProcessTime / int(batch_number + 1) * 100,
                                                                         dataLoadTime / int(batch_number + 1) * 100]),
                                     'epochLog', verbose=True, flush=False)
@@ -181,6 +183,7 @@ class BaseExperiment(IExperiment):
         for batch_number, images in enumerate(dataloader):
             benchmark_comparisons = []
             batch_num = images['inputs'][0].shape[0]
+            # print(images["inputs"][0].cpu().detach().numpy().max(), images["inputs"][0].cpu().detach().numpy().min())
             test_dict = self.test_single(images)
             # memory leak in following line
             # total_losses = list(map(add, total_losses, batch_num * test_dict["losses"]))
