@@ -18,13 +18,13 @@ from utils.benchmark import BenchmarkMetrics
 import os
 from assemblers.assemblerGetter import getExperimentWithDesiredAssembler
 
-DESIRED_ASSEMBLER = "fusionv2ADAS"
-CONFIG_FILE_NAME = "./configs/encoderDecoderFusionv2ADAS_HSVsingleChannel.ini"
+DESIRED_ASSEMBLER = "fusionv2ADASKAIST"
+CONFIG_FILE_NAME = "./configs/encoderDecoderFusionv2ADAS+KAIST_YsingleChannels.ini"
 ROOT_PATH = "/media/ferhatcan/common/Image_Datasets/VIFB-master/input/"
-OUTPUT_PATH = "./Outputs/HSV+IR_2/"
+OUTPUT_PATH = "./Outputs/Y+IR-ADAS_KAIST_norm1-1_onlyQEQ/"
 
-which_channel = 2
-channel_type = 'HSV'
+which_channel = 0
+channel_type = 'YCbCr'
 
 def extract_image_files():
     extensions = ["jpg", "jpeg", "png"]
@@ -75,13 +75,18 @@ def main():
         hr_image = tvF.to_tensor(visible)
         lr_image = tvF.to_tensor(ir)
 
+        hr_image = hr_image * 2 - 1
+        lr_image = lr_image * 2 - 1
+
         data = dict()
         data["inputs"] = [lr_image.unsqueeze(dim=0), hr_image.unsqueeze(dim=0)]
 
         output = experiment.inference(data)
         # data["result"] = [kn.normalize_min_max(output["results"][0])]
-        data["result"] = [output["results"][0]]
-        # print(data["result"][0].cpu().detach().numpy().max(), data["result"][0].cpu().detach().numpy().min())
+        data["result"] = [(output["results"][0] + 1) * 0.5]
+        print(B[:, :, which_channel].max(), B[:, :, which_channel].min())
+        print(data["result"][0].cpu().detach().numpy().max(), data["result"][0].cpu().detach().numpy().min())
+        # print(data["inputs"][0].cpu().detach().numpy().max(), data["inputs"][0].cpu().detach().numpy().min())
         out = np.copy(B)
         out[:, :, which_channel] = data["result"][0].cpu().detach().numpy() * 255
         outPil = Image.fromarray(out, channel_type)
