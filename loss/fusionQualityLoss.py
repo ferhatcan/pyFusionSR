@@ -13,7 +13,11 @@ class FusionQualityLoss(ILoss):
 
     def forward(self, data: dict) -> list:
         # data["result"][0] = kn.normalize_min_max(data["result"][0])
-        normalLoss = self.qLoss(data)
+        qData = {"result": [], "gts": []}
+        qData["gts"].append((data["gts"][0] + 1) * 0.5)
+        qData["gts"].append((data["gts"][1] + 1) * 0.5)
+        qData["result"].append((data["result"][0] + 1) * 0.5)
+        normalLoss = self.qLoss(qData)
 
         # inplace 1 - overallQscore_abf
         for i in range(len(normalLoss)):
@@ -35,12 +39,17 @@ class FusionQualityEdgeLoss(ILoss):
             edgeData["result"].append(kn.normalize_min_max(kn.sobel(inp)))
             mean = edgeData["result"][-1].mean()
             std = edgeData["result"][-1].std()
-            edgeData["result"][-1][edgeData["result"][-1] <= mean + 1.2 * std] = 0
+            # edgeData["result"][-1][edgeData["result"][-1] <= mean + 1.2 * std] = 0
         for inp in data["gts"]:
             edgeData["gts"].append(kn.normalize_min_max(kn.sobel(inp)))
             mean = edgeData["gts"][-1].mean()
             std = edgeData["gts"][-1].std()
-            edgeData["gts"][-1][edgeData["gts"][-1] <= mean + 1.2 * std] = 0
+            # edgeData["gts"][-1][edgeData["gts"][-1] <= mean + 1.2 * std] = 0
+
+        # make ir edges more stronger
+        # mean = edgeData["gts"][0].mean()
+        # std = edgeData["gts"][0].std()
+        # edgeData["gts"][0][edgeData["gts"][0] > mean + 4 * std] = 1
 
         edgeLoss = self.qLoss(edgeData)
 
@@ -52,7 +61,7 @@ class FusionQualityEdgeLoss(ILoss):
         # edgeLoss_tmp = [torch.pow(edgeLoss[i], torch.tensor(0.7)) for i in range(len(edgeLoss))]
 
         # debugging
-        # data["edges"] = edgeData
+        data["edges"] = edgeData
         # debugging
 
         # inplace 1 - overallQscore_abf
@@ -149,6 +158,14 @@ class FusionQualityMetric(ILoss):
 
         lambda_af, lambda_bf= self._calculate_lambda(sigma_a, sigma_b)
 
+        # print(Q0_af.min(), Q0_bf.min())
+        # print(corrCoeff_af.min(), corrCoeff_bf.min())
+        # print(corrCoeff_af.min(), corrCoeff_bf.min())
+        # print(corrCoeff_af.min(), corrCoeff_bf.min())
+        #
+        # print(sigma_a.min(), sigma_b.min(), sigma_f.min())
+        # print(sigma_af.min(), sigma_bf.min())
+
         Q0 = Q0_af * lambda_af + Q0_bf * lambda_bf
         Q0 = Q0 * self._calculate_weighted_quality_index(sigma_a, sigma_b)
 
@@ -179,7 +196,7 @@ class FusionQualityMetric(ILoss):
 
     @staticmethod
     def _calculte_correlation_coefficient(sigma_x, sigma_y, sigma_xy):
-        corrCoeff_xy = sigma_xy / (torch.sqrt(sigma_x) * torch.sqrt(sigma_y) + 1e-8)
+        corrCoeff_xy = sigma_xy / (torch.sqrt(sigma_x + 1e-8) * torch.sqrt(sigma_y + 1e-8) + 1e-8)
         return corrCoeff_xy
 
     def _calculate_luminance_distortion(self, umean_x, umean_y):
@@ -190,7 +207,7 @@ class FusionQualityMetric(ILoss):
 
     @staticmethod
     def _calculate_contrast_distortion(sigma_x, sigma_y):
-        contDist = (2 * torch.sqrt(sigma_x) * torch.sqrt(sigma_y)) / (sigma_x + sigma_y + 1e-8)
+        contDist = (2 * torch.sqrt(sigma_x + 1e-8) * torch.sqrt(sigma_y + 1e-8)) / (sigma_x + sigma_y + 1e-8)
         return contDist
 
     @staticmethod
