@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 
 from methods.IMethod import IMethod
 
@@ -20,6 +21,7 @@ class BaseMethod(IMethod):
         data["result"] = [result]
         # calculate loss
         losses = self._calculateLoss(data)
+        self._checkNaN(losses)
         # calculate gradients
         losses[-1].backward()
         # do gradient clipping
@@ -41,6 +43,7 @@ class BaseMethod(IMethod):
         data["result"] = [result]
         # calculate loss
         losses = self._calculateLoss(data)
+        self._checkNaN(losses)
         
         return result, losses
 
@@ -59,3 +62,9 @@ class BaseMethod(IMethod):
             losses.append(weight * sum(results) / len(results))
         losses.append(sum(losses))
         return losses
+
+    def _checkNaN(self, inputs):
+        for i, inp in enumerate(inputs):
+            if np.isnan(inp.cpu().detach().numpy()):
+                raise ValueError('Loss function returns NaN for loss type {}'.format(self.loss_functions['types'][i]))
+
