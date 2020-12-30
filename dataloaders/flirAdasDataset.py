@@ -215,6 +215,11 @@ class FlirAdasDataset(IDataLoader):
         elif self.normalize == "divideBy255":
             hr_image = tvF.normalize(hr_image, [0, ], [1, ])
             lr_image = tvF.normalize(lr_image, [0, ], [1, ])
+        else:
+            hr_image = hr_image * 2 - 1
+            lr_image = lr_image * 2 - 1
+
+        # print(lr_image.cpu().detach().numpy().max(), hr_image.cpu().detach().numpy().min())
 
         return lr_image, hr_image
 
