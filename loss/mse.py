@@ -13,7 +13,8 @@ class MSELossLocal(ILoss):
         assert "gts" in data and "result" in data, "gts Type should be a dict and contains \"gts\" and \"result\" keys"
         assert len(data["result"]) == 1, "there should be 1 result to calculate loss"
         result = []
-        for i in range(len(data["gts"])):
+        # only calculate with visible image
+        for i in range(0, len(data["gts"]) - 1):
             if data["gts"][i].shape == data["result"][0].shape:
                 result.append(self.loss_function(data["gts"][i], data["result"][0]))
             else:
