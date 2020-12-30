@@ -52,6 +52,10 @@ class KaistDataset(BaseDataset):
     def __getitem__(self, index: int) -> dict:
         hr_image_lwir = Image.open(self.imageFiles[0][index])
         hr_image_visible = Image.open(self.imageFiles[1][index])
+
+        # print('IR', np.array(hr_image_lwir).max(), np.array(hr_image_lwir).min())
+        # print('VIS', np.array(hr_image_visible).max(), np.array(hr_image_visible).min())
+
         lr_ir, hr_ir, lr_eo, hr_eo = self.transform_multi(hr_image_lwir, hr_image_visible)
         return self.fillOutputDataDict([lr_ir, lr_eo], [hr_ir, hr_eo])
 
@@ -60,6 +64,8 @@ class KaistDataset(BaseDataset):
         # downscale to obtain low-resolution image
         resize = transforms.Resize(size=self.lr_shape, interpolation=self.downgrade)
         lr_image = resize(hr_image)
+
+        # print(np.array(hr_image).max(), np.array(hr_image).min())
 
         # apply blur
         if self.include_blur:
@@ -141,10 +147,15 @@ class KaistDataset(BaseDataset):
         elif self.normalize == "divideBy255":
             hr_image = tvF.normalize(hr_image, [0, ], [1, ])
             lr_image = tvF.normalize(lr_image, [0, ], [1, ])
+        else:
+            hr_image = hr_image * 2 - 1
+            lr_image = lr_image * 2 - 1
 
         # if self.channel_number == 3 & hr_image.size[-1] == 1:
         #     hr_image = hr_image
         #     lr_image = lr_image
+
+        # print(lr_image.cpu().detach().numpy().max(), hr_image.cpu().detach().numpy().min())
 
         return lr_image, hr_image
 
